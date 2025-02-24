@@ -7,10 +7,13 @@ import org.springframework.core.env.Environment;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 public class RowAppender {
@@ -18,15 +21,13 @@ public class RowAppender {
     private static final DateTimeFormatter fomatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     private final ObjectMapper objectMapper;
-    private final Environment env;
-
+    private final FileLoader fileLoader;
 
     public <T> void append(Data<T> data){
         try {
             String row = new StringBuilder()
                     .append(data.getId()).append(KEY_VAL_SEPARATOR).append(objectMapper.writeValueAsString(data.getObject())).append(System.lineSeparator()).toString();
-            String tablespace = env.getProperty("app.tablespace");
-            Files.write(Paths.get(tablespace).resolve(LocalDateTime.now().format(fomatter) + ".txt"), row.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            Files.write(fileLoader.getLatestFile(), row.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         }catch (IOException ex){
             throw new IllegalArgumentException("Data Append Failure detail(" + ex.getMessage() + ")");
         }
